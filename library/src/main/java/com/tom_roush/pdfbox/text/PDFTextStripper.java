@@ -50,6 +50,8 @@ import com.tom_roush.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOut
 import com.tom_roush.pdfbox.pdmodel.interactive.pagenavigation.PDThreadBead;
 import com.tom_roush.pdfbox.util.IterativeMergeSort;
 
+import org.w3c.dom.Text;
+
 /**
  * This class will take a pdf document and strip out all of the text and ignore the formatting and such. Please note; it
  * is up to clients of this class to verify that a specific user has the correct permissions to extract text from the
@@ -1698,47 +1700,45 @@ public class PDFTextStripper extends LegacyPDFStreamEngine
 
     /**
      * Write a list of string containing a whole line of a document.
+     * <p>
+     * Modified by Tomas David on 14.08.2024: changed implementation so that it accepts output of
+     * modified {@link #normalize(List)}.
      *
-     * @param line a list with the words of the given line
+     * @param line object containing the text and text positions
      * @throws IOException if something went wrong
      */
-    private void writeLine(List<WordWithTextPositions> line)
+    private void writeLine(WordWithTextPositions line)
         throws IOException
     {
-        int numberOfStrings = line.size();
-        for (int i = 0; i < numberOfStrings; i++)
-        {
-            WordWithTextPositions word = line.get(i);
-            writeString(word.getText(), word.getTextPositions());
-            if (i < numberOfStrings - 1)
-            {
-                writeWordSeparator();
-            }
-        }
+        writeString(line.getText(), line.getTextPositions());
     }
 
     /**
-     * Normalize the given list of TextPositions.
+     * Normalize the given list of TextPositions. Word separator's text position might be null.
+     * <p>
+     * Modified by Tomas David on 14.08.2024: changed implementation so that the output is
+     * consistent even if separators aren't represented as ASCII in the PDF file.
      *
      * @param line list of TextPositions
-     * @return a list of strings, one string for every word
+     * @return object containing the text of the line and it's text positions
      */
-    private List<WordWithTextPositions> normalize(List<LineItem> line)
+    private WordWithTextPositions normalize(List<LineItem> line)
     {
-        List<WordWithTextPositions> normalized = new LinkedList<WordWithTextPositions>();
         StringBuilder lineBuilder = new StringBuilder();
         List<TextPosition> wordPositions = new ArrayList<TextPosition>();
 
         for (LineItem item : line)
         {
-            lineBuilder = normalizeAdd(normalized, lineBuilder, wordPositions, item);
+            if (item.isWordSeparator()) {
+                lineBuilder.append(wordSeparator);
+                wordPositions.add(null);
+            } else {
+                TextPosition text = item.getTextPosition();
+                lineBuilder.append(text.getUnicode());
+                wordPositions.add(text);
+            }
         }
-
-        if (lineBuilder.length() > 0)
-        {
-            normalized.add(createWord(lineBuilder.toString(), wordPositions));
-        }
-        return normalized;
+        return createWord(lineBuilder.toString(), wordPositions);
     }
 
     /**
