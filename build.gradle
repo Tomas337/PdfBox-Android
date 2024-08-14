@@ -18,9 +18,9 @@ allprojects {
     repositories {
 //        Enable downloading snapshot versions
 //        maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
-        mavenCentral()
-        google()
-        jcenter()
+//        mavenCentral()
+//        google()
+//        jcenter()
     }
 
 //    Show more warnings if desired
